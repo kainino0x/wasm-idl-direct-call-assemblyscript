@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Wasm-to-IDL direct call benchmark</title>
+  </head>
+  <body>
+    <p>
+      <a href="https://github.com/kainino0x/wasm-idl-direct-call-assemblyscript"
+        >Source on GitHub</a
+      >
+    </p>
+    <canvas id="cvs" style="border: 1px solid black"></canvas>
+    <pre id="out"></pre>
+    <script type="module">
+      import {
+        clearManyTimesThruJS,
+        clearManyTimesNoJS,
+      } from "./build/release.js";
+
+      const gl = cvs.getContext("webgl");
+      const kClearsPerIteration = 1000000;
+      const kNumVariants = 3;
+
+      console.log(`Each iteration does ${kClearsPerIteration} clear() calls.`);
+
+      let iterations = 0;
+      setInterval(() => {
+        // cycle color each time so you can see it's working
+        const color =
+          ((iterations % kNumVariants) / (kNumVariants - 1)) ** (1 / 2.2);
+        gl.clearColor(0.1, 0.9, color, 1.0);
+
+        switch (iterations % kNumVariants) {
+          case 0:
+            console.time("   PlainJS");
+            for (let i = 0; i < kClearsPerIteration; ++i) {
+              gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+            console.timeEnd("   PlainJS");
+            break;
+          case 1:
+            console.time("WasmThruJS");
+            clearManyTimesThruJS(gl, kClearsPerIteration);
+            console.timeEnd("WasmThruJS");
+            break;
+          case 2:
+            console.time("  WasmNoJS");
+            clearManyTimesNoJS(gl, kClearsPerIteration);
+            console.timeEnd("  WasmNoJS");
+            break;
+        }
+
+        out.innerText = `Ran ${iterations} iterations of ${kClearsPerIteration} clear() calls; see console for results`;
+        iterations++;
+      }, 1000); // Throttle to once per second
+    </script>
+  </body>
+</html>
